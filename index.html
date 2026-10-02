@@ -1,0 +1,40 @@
+
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+    <title>Tetris</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <main class="game">
+        <h1>TETRIS</h1>
+
+        <div class="info">
+            <span>Điểm: <b id="score">0</b></span>
+            <span>Level: <b id="level">1</b></span>
+        </div>
+
+        <canvas id="game" width="300" height="600"></canvas>
+
+        <div class="controls">
+            <button class="empty" aria-hidden="true" tabindex="-1"></button>
+            <button data-action="rotate" aria-label="Xoay">↻</button>
+            <button class="empty" aria-hidden="true" tabindex="-1"></button>
+
+            <button data-action="left" aria-label="Sang trái">←</button>
+            <button data-action="drop" aria-label="Thả xuống">↓</button>
+            <button data-action="right" aria-label="Sang phải">→</button>
+        </div>
+
+        <button id="restart">Chơi lại</button>
+
+        <p class="hint">
+            ← → Di chuyển | ↑ Xoay | ↓ Thả nhanh | Space Thả xuống đáy
+        </p>
+    </main>
+
+    <script type="module" src="js/main.js"></script>
+</body>
+</html>
