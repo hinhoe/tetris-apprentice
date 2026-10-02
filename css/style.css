@@ -52,13 +52,13 @@ canvas {
     display: grid;
     grid-template-columns: repeat(3, 60px);
     column-gap: 40px; /* khoảng cách giữa ← ↓ → */
-    row-gap: 8px;
+    row-gap: 16px;
     justify-content: center;
 }
 
 button {
     width: 90px;
-    height: 68px;
+    height: 75px;
     border: none;
     border-radius: 8px;
     background: #333;
