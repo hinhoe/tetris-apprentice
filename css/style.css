@@ -6,31 +6,34 @@
 body {
     margin: 0;
     min-height: 100vh;
+    min-height: 100svh;
     display: flex;
     justify-content: center;
     align-items: center;
-    padding: 20px;
+    padding: 10px;
     background: #111;
     color: white;
     font-family: Arial, sans-serif;
+    overscroll-behavior: none;
 }
 
 .game {
     width: 100%;
-    max-width: 360px;
+    max-width: 300px;
     text-align: center;
 }
 
 h1 {
-    margin: 0 0 10px;
-    letter-spacing: 3px;
+    margin: 0 0 6px;
+    font-size: 24px;
+    letter-spacing: 2px;
 }
 
 .info {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 10px;
-    font-size: 18px;
+    margin-bottom: 6px;
+    font-size: 15px;
 }
 
 canvas {
@@ -38,22 +41,26 @@ canvas {
     width: 100%;
     height: auto;
     background: #000;
-    border: 3px solid #555;
+    border: 2px solid #555;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
 }
 
 .controls {
-    margin-top: 15px;
+    margin-top: 8px;
     display: grid;
-    grid-template-columns: repeat(3, 60px);
-    gap: 6px;
+    grid-template-columns: repeat(3, 52px);
+    gap: 5px;
     justify-content: center;
 }
 
 button {
-    width: 60px;
-    height: 45px;
+    width: 52px;
+    height: 38px;
     border: none;
-    border-radius: 8px;
+    border-radius: 7px;
     background: #333;
     color: white;
     font-size: 20px;
@@ -61,17 +68,8 @@ button {
     touch-action: manipulation;
 }
 
-button:hover {
-    background: #444;
-}
-
 button:active {
     background: #666;
-}
-
-button:focus-visible {
-    outline: 2px solid #60a5fa;
-    outline-offset: 2px;
 }
 
 .empty {
@@ -79,21 +77,41 @@ button:focus-visible {
 }
 
 #restart {
-    margin-top: 10px;
-    width: 190px;
+    margin-top: 7px;
+    width: 160px;
+    height: 35px;
     background: #2563eb;
-    font-size: 16px;
-}
-
-#restart:hover {
-    background: #1d4ed8;
+    font-size: 14px;
 }
 
 .hint {
-    margin-top: 12px;
+    margin: 7px 0 0;
     color: #aaa;
-    font-size: 12px;
-    line-height: 1.5;
+    font-size: 10px;
+    line-height: 1.4;
+}
+
+.game,
+.game * {
+    -webkit-tap-highlight-color: transparent;
+}
+
+@media (max-height: 700px) {
+    body {
+        align-items: flex-start;
+    }
+
+    .game {
+        max-width: 260px;
+    }
+
+    .controls {
+        margin-top: 6px;
+    }
+
+    .hint {
+        margin-top: 5px;
+    }
 }
 
 @media (max-width: 400px) {

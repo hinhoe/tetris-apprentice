@@ -1,4 +1,3 @@
-
 import {
     move,
     rotate,
@@ -8,13 +7,26 @@ import {
     setFastDrop
 } from "./game.js";
 
+import { COLS, ROWS } from "./constants.js";
+
 export function setupControls() {
     const canvas = document.getElementById("game");
 
-    // ===== NÚT ĐIỀU KHIỂN =====
-    document.querySelectorAll("[data-action]").forEach(button => {
-        button.addEventListener("click", () => {
-            switch (button.dataset.action) {
+    // =====================================================
+    // NÚT ĐIỀU KHIỂN
+    // =====================================================
+
+    const buttons = document.querySelectorAll("[data-action]");
+
+    buttons.forEach(button => {
+        let holdTimer = null;
+        let repeatTimer = null;
+        let isHolding = false;
+
+        function performAction() {
+            const action = button.dataset.action;
+
+            switch (action) {
                 case "left":
                     move(-1);
                     break;
@@ -31,145 +43,367 @@ export function setupControls() {
                     rotate();
                     break;
             }
+        }
+
+        button.addEventListener("pointerdown", event => {
+            if (event.pointerType === "mouse" && event.button !== 0) {
+                return;
+            }
+
+            event.preventDefault();
+
+            isHolding = true;
+
+            // Thực hiện ngay lần đầu.
+            performAction();
+
+            // Sau một khoảng ngắn bắt đầu spam.
+            holdTimer = setTimeout(() => {
+                if (!isHolding) return;
+
+                repeatTimer = setInterval(() => {
+                    if (isHolding) {
+                        performAction();
+                    }
+                }, 80);
+
+            }, 180);
+
+            try {
+                button.setPointerCapture(event.pointerId);
+            } catch {
+                // Không làm gì nếu browser không hỗ trợ.
+            }
+        });
+
+        function stopButton() {
+            isHolding = false;
+
+            clearTimeout(holdTimer);
+            clearInterval(repeatTimer);
+
+            holdTimer = null;
+            repeatTimer = null;
+        }
+
+        button.addEventListener("pointerup", stopButton);
+        button.addEventListener("pointercancel", stopButton);
+        button.addEventListener("pointerleave", event => {
+            // Chỉ dừng khi pointer không còn được giữ capture.
+            if (!button.hasPointerCapture?.(event.pointerId)) {
+                stopButton();
+            }
         });
     });
 
+    // Nút chơi lại
     document.getElementById("restart")
         .addEventListener("click", restart);
 
-    // ===== CẢM ỨNG TRÊN CANVAS =====
-    const SWIPE_THRESHOLD = 25;
-    const DOUBLE_TAP_DELAY = 280;
+
+    // =====================================================
+    // CẢM ỨNG TRÊN CANVAS
+    // =====================================================
+
+    const SWIPE_THRESHOLD = 5;
+
+    // Phải giữ yên khoảng thời gian này
+    // mới được xem là "đè".
+    const HOLD_DELAY = 180;
+
+    let pointerId = null;
 
     let startX = 0;
     let startY = 0;
-    let pointerId = null;
+
+    let lastStepX = 0;
+    let lastStepY = 0;
+
     let moved = false;
-    let isDoubleTap = false;
-    let lastTapTime = 0;
-    let fastDropPointer = null;
+    let horizontalGesture = false;
+    let verticalGesture = false;
+
+    let holdTimer = null;
+    let fastDropActive = false;
+
+
+    function getCellSize() {
+        const rect = canvas.getBoundingClientRect();
+
+        return {
+            width: rect.width / COLS,
+            height: rect.height / ROWS
+        };
+    }
+
+
+    function getSteps(distance, cellSize) {
+        const count = Math.abs(distance) / cellSize;
+
+        const steps = Math.floor(count + 0.5);
+
+        return distance < 0 ? -steps : steps;
+    }
+
+
+    // =====================================================
+    // BẮT ĐẦU CHẠM
+    // =====================================================
 
     canvas.addEventListener("pointerdown", event => {
-        if (event.pointerType === "mouse" && event.button !== 0) {
+
+        if (
+            event.pointerType === "mouse" &&
+            event.button !== 0
+        ) {
             return;
         }
 
         event.preventDefault();
 
-        // Không xử lý nhiều ngón cùng lúc.
-        if (pointerId !== null) return;
+        if (pointerId !== null) {
+            return;
+        }
 
         pointerId = event.pointerId;
+
         startX = event.clientX;
         startY = event.clientY;
+
+        lastStepX = 0;
+        lastStepY = 0;
+
         moved = false;
+        horizontalGesture = false;
+        verticalGesture = false;
 
-        const now = Date.now();
+        // Không rơi nhanh ngay lập tức.
+        // Chờ xem người dùng đang TAP hay HOLD.
+        holdTimer = setTimeout(() => {
 
-        isDoubleTap =
-            now - lastTapTime <= DOUBLE_TAP_DELAY &&
-            lastTapTime !== 0;
+            // Nếu trong thời gian chờ người dùng
+            // không di chuyển thì đây là HOLD.
+            if (
+                pointerId === event.pointerId &&
+                !moved &&
+                !horizontalGesture &&
+                !verticalGesture
+            ) {
+                fastDropActive = true;
+                setFastDrop(true);
+            }
 
-        // Chạm lần thứ hai và tiếp tục giữ:
-        // bật chế độ rơi nhanh ngay lập tức.
-        if (isDoubleTap) {
-            fastDropPointer = event.pointerId;
-            setFastDrop(true);
-            lastTapTime = 0;
-        }
+        }, HOLD_DELAY);
+
 
         try {
             canvas.setPointerCapture(event.pointerId);
         } catch {
-            // Tiếp tục hoạt động nếu capture không khả dụng.
+            // Không làm gì.
         }
     });
+
+
+    // =====================================================
+    // DI CHUYỂN NGÓN TAY
+    // =====================================================
 
     canvas.addEventListener("pointermove", event => {
-        if (event.pointerId !== pointerId) return;
 
-        event.preventDefault();
-
-        const dx = event.clientX - startX;
-        const dy = event.clientY - startY;
-
-        if (
-            Math.abs(dx) > SWIPE_THRESHOLD ||
-            Math.abs(dy) > SWIPE_THRESHOLD
-        ) {
-            moved = true;
+        if (event.pointerId !== pointerId) {
+            return;
         }
-    });
-
-    function finishPointer(event) {
-        if (event.pointerId !== pointerId) return;
 
         event.preventDefault();
 
         const dx = event.clientX - startX;
         const dy = event.clientY - startY;
 
-        // Nhấc ngón tay: tắt rơi nhanh.
-        if (fastDropPointer === event.pointerId) {
-            setFastDrop(false);
-            fastDropPointer = null;
-            lastTapTime = 0;
-        } else if (moved) {
-            // Vuốt ngang: di chuyển theo hướng vuốt.
-            if (Math.abs(dx) > Math.abs(dy)) {
-                const steps = Math.max(
-                    1,
-                    Math.floor(Math.abs(dx) / 30)
-                );
+        const distance = Math.max(
+            Math.abs(dx),
+            Math.abs(dy)
+        );
 
-                for (let i = 0; i < steps; i++) {
-                    move(dx < 0 ? -1 : 1);
-                }
-            } else if (dy > SWIPE_THRESHOLD) {
-                // Vuốt xuống: thả nhanh theo độ dài vuốt.
-                const steps = Math.max(
-                    1,
-                    Math.floor(dy / 30)
-                );
 
-                for (let i = 0; i < steps; i++) {
-                    drop();
-                }
+        // Chưa xác định đây là TAP hay SWIPE
+        if (
+            !horizontalGesture &&
+            !verticalGesture
+        ) {
+
+            if (distance < SWIPE_THRESHOLD) {
+                return;
             }
 
-            lastTapTime = 0;
-        } else if (!isDoubleTap) {
-            // Chạm một lần: xoay khối.
-            rotate();
-            lastTapTime = Date.now();
+            // Người dùng bắt đầu vuốt.
+            moved = true;
+
+            // QUAN TRỌNG:
+            // Nếu đang chuẩn bị / đang rơi nhanh
+            // thì vuốt sẽ hủy chế độ rơi nhanh.
+            clearTimeout(holdTimer);
+            holdTimer = null;
+
+            if (fastDropActive) {
+                fastDropActive = false;
+                setFastDrop(false);
+            }
+
+
+            // Xác định hướng vuốt.
+            if (Math.abs(dx) >= Math.abs(dy)) {
+                horizontalGesture = true;
+            } else {
+                verticalGesture = true;
+            }
         }
+
+
+        // =================================================
+        // VUỐT NGANG
+        // =================================================
+
+        if (horizontalGesture) {
+
+            const cell = getCellSize();
+
+            const currentStep =
+                getSteps(dx, cell.width);
+
+            const difference =
+                currentStep - lastStepX;
+
+
+            if (difference !== 0) {
+
+                move(difference);
+
+                lastStepX = currentStep;
+            }
+
+            return;
+        }
+
+
+        // =================================================
+        // VUỐT DỌC
+        // =================================================
+
+        if (verticalGesture && dy > 0) {
+
+            const cell = getCellSize();
+
+            const currentStep =
+                getSteps(dy, cell.height);
+
+            const difference =
+                currentStep - lastStepY;
+
+
+            if (difference > 0) {
+
+                for (let i = 0; i < difference; i++) {
+                    drop();
+                }
+
+                lastStepY = currentStep;
+            }
+        }
+    });
+
+
+    // =====================================================
+    // NHẢ NGÓN TAY
+    // =====================================================
+
+    function finishPointer(event) {
+
+        if (event.pointerId !== pointerId) {
+            return;
+        }
+
+        event.preventDefault();
+
+        clearTimeout(holdTimer);
+        holdTimer = null;
+
+
+        // Nếu đang rơi nhanh do HOLD
+        // thì dừng lại.
+        if (fastDropActive) {
+
+            fastDropActive = false;
+
+            setFastDrop(false);
+        }
+
+
+        // Không di chuyển = TAP
+        // => xoay.
+        if (!moved) {
+            rotate();
+        }
+
 
         pointerId = null;
+
         moved = false;
-        isDoubleTap = false;
+        horizontalGesture = false;
+        verticalGesture = false;
     }
 
-    canvas.addEventListener("pointerup", finishPointer);
 
-    canvas.addEventListener("pointercancel", event => {
-        if (event.pointerId === pointerId) {
+    canvas.addEventListener(
+        "pointerup",
+        finishPointer
+    );
+
+
+    canvas.addEventListener(
+        "pointercancel",
+        event => {
+
+            if (event.pointerId !== pointerId) {
+                return;
+            }
+
+            clearTimeout(holdTimer);
+
+            holdTimer = null;
+
+            fastDropActive = false;
+
             setFastDrop(false);
-            fastDropPointer = null;
+
             pointerId = null;
+
             moved = false;
-            isDoubleTap = false;
-            lastTapTime = 0;
+            horizontalGesture = false;
+            verticalGesture = false;
         }
-    });
+    );
 
-    // Hạn chế cử chỉ phóng to của Safari trên vùng chơi.
-    canvas.addEventListener("gesturestart", event => {
-        event.preventDefault();
-    });
 
-    // ===== BÀN PHÍM MÁY TÍNH =====
+    // =====================================================
+    // CHỐNG ZOOM / GESTURE TRÊN IOS
+    // =====================================================
+
+    canvas.addEventListener(
+        "gesturestart",
+        event => {
+            event.preventDefault();
+        }
+    );
+
+
+    // =====================================================
+    // BÀN PHÍM
+    // =====================================================
+
     document.addEventListener("keydown", event => {
+
         switch (event.key) {
+
             case "ArrowLeft":
                 event.preventDefault();
                 move(-1);
@@ -193,11 +427,32 @@ export function setupControls() {
             case " ":
                 event.preventDefault();
 
-                // Tránh thả liên tục khi giữ phím Space.
                 if (!event.repeat) {
                     hardDrop();
                 }
+
                 break;
         }
     });
+
+
+    // Khi chuyển tab/app thì hủy trạng thái HOLD.
+    document.addEventListener(
+        "visibilitychange",
+        () => {
+
+            if (document.hidden) {
+
+                clearTimeout(holdTimer);
+
+                holdTimer = null;
+
+                fastDropActive = false;
+
+                setFastDrop(false);
+
+                pointerId = null;
+            }
+        }
+    );
 }
