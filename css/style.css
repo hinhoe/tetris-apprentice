@@ -52,13 +52,13 @@ canvas {
     margin-top: 8px;
     display: grid;
     grid-template-columns: repeat(3, 60px);
-    gap: 6px;
+    gap: 9px;
     justify-content: center;
 }
 
 button {
-    width: 60px;
-    height: 44px;
+    width: 88px;
+    height: 68px;
     border: none;
     border-radius: 8px;
     background: #333;
