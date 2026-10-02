@@ -49,16 +49,16 @@ canvas {
 }
 
 .controls {
-    margin-top: 8px;
     display: grid;
     grid-template-columns: repeat(3, 60px);
-    gap: 9px;
+    column-gap: 22px; /* khoảng cách giữa ← ↓ → */
+    row-gap: 16px;
     justify-content: center;
 }
 
 button {
-    width: 88px;
-    height: 68px;
+    width: 100px;
+    height: 80px;
     border: none;
     border-radius: 8px;
     background: #333;
