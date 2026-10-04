@@ -27,16 +27,34 @@ export function drawCell(ctx, x, y, value) {
     );
 }
 
+
 export function drawBoard(ctx, board) {
     ctx.fillStyle = "#000";
-    ctx.fillRect(0, 0, COLS * SIZE, ROWS * SIZE);
+    ctx.fillRect(0, 0, 300, 600);
 
-    for (let y = 0; y < ROWS; y++) {
-        for (let x = 0; x < COLS; x++) {
-            if (board[y][x]) {
-                drawCell(ctx, x, y, board[y][x]);
+    board.forEach((row, y) => {
+        row.forEach((value, x) => {
+            if (value) {
+                drawCell(ctx, x, y, value);
             }
-        }
+        });
+    });
+
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.12)";
+    ctx.lineWidth = 1;
+
+    for (let x = 0; x <= 10; x++) {
+        ctx.beginPath();
+        ctx.moveTo(x * 30, 0);
+        ctx.lineTo(x * 30, 600);
+        ctx.stroke();
+    }
+
+    for (let y = 0; y <= 20; y++) {
+        ctx.beginPath();
+        ctx.moveTo(0, y * 30);
+        ctx.lineTo(300, y * 30);
+        ctx.stroke();
     }
 }
 
